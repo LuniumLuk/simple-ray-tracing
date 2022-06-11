@@ -12,11 +12,5 @@ all: $(TARGET)
 run: all
 	./$(TARGET)
 
-help:
-	@echo $(HEADERS)
-	@echo $(INCLUDES)
-
 $(TARGET): $(SOURCEDIR)/main.cpp $(HEADERS)
-	@$(CXX) $(CFLAGS) $(INCLUDES) -o main.o -c $(SOURCEDIR)/main.cpp
-	@$(CXX) $(CFLAGS) $(INCLUDES) -o $@ main.o
-	@$(RM) main.o
+	@$(CXX) $(CFLAGS) $(INCLUDES) -o main -c $(SOURCEDIR)/main.cpp
