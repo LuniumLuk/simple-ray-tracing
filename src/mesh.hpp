@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define TINYOBJLOADER_IMPLEMENTATION
-#include "thirdparty/tiny_obj_loader.h"
+#include "thirdparty/tinyobjloader/tiny_obj_loader.h"
 #include "global.hpp"
 
 namespace Utility

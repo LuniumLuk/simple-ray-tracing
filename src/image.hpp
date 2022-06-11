@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include "thirdparty/stb_image.h"
+#include "thirdparty/stb/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "thirdparty/stb_image_write.h"
+#include "thirdparty/stb/stb_image_write.h"
 #include "global.hpp"
 
 namespace Utility

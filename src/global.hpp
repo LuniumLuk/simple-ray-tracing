@@ -3,7 +3,7 @@
 
 // Linear algebra liberary
 
-#include "thirdparty/glm/glm.hpp"
+#include "thirdparty/glm/glm/glm.hpp"
 using vec4 = glm::vec4;
 using vec3 = glm::vec3;
 using vec2 = glm::vec2;
