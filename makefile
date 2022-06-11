@@ -1,18 +1,22 @@
 CXX 		:= g++
-CXX_FLAGS   := -g -std=c++20 -Wformat
-CC			:= gcc
+CFLAGS   	:= -g -std=c++11 -Wformat
 
-SRC 		:= ./src
-INCLUDE 	:= ./include
+TARGET		:= main
 
-EXECUTABLE	:= main
+SOURCEDIR  	:= src
+INCLUDES   	:= -I$(SOURCEDIR)
+HEADERS    	:= $(wildcard $(addprefix $(SOURCEDIR)/, *.hpp))
 
-RM 			:= del
-
-all: $(EXECUTABLE)
+all: $(TARGET)
 
 run: all
-	./$(EXECUTABLE)
+	./$(TARGET)
 
-$(EXECUTABLE): $(SRC)/main.cpp
-	$(CXX) $(CXX_FLAGS) -I$(INCLUDE) $^ -o $@
+help:
+	@echo $(HEADERS)
+	@echo $(INCLUDES)
+
+$(TARGET): $(SOURCEDIR)/main.cpp $(HEADERS)
+	@$(CXX) $(CFLAGS) $(INCLUDES) -o main.o -c $(SOURCEDIR)/main.cpp
+	@$(CXX) $(CFLAGS) $(INCLUDES) -o $@ main.o
+	@$(RM) main.o
