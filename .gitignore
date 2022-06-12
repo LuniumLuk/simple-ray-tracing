@@ -1,3 +1,8 @@
 *.dSYM
 .vscode/
+
 main
+
+*.o
+*.png
+*.hdr

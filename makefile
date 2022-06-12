@@ -13,4 +13,6 @@ run: all
 	./$(TARGET)
 
 $(TARGET): $(SOURCEDIR)/main.cpp $(HEADERS)
-	@$(CXX) $(CFLAGS) $(INCLUDES) -o main -c $(SOURCEDIR)/main.cpp
+	@$(CXX) $(CFLAGS) $(INCLUDES) -o main.o -c $(SOURCEDIR)/main.cpp
+	@$(CXX) $(CFLAGS) $(INCLUDES) -o $(TARGET) main.o
+	@$(RM) main.o
