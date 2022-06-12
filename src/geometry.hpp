@@ -2,6 +2,9 @@
 #define __GEOMETRY_HPP__
 
 #include "global.hpp"
+#include <memory>
+
+namespace Material { class Material; }
 
 namespace Geometry
 {
@@ -13,7 +16,7 @@ private:
     vec3 m_direction;
 
 public:
-    Ray() = delete;
+    Ray() = default;
 
     Ray(vec3 origin, vec3 direction):
         m_origin(origin),
@@ -32,6 +35,7 @@ struct HitRecord
 {
     vec3 point;
     vec3 normal;
+    std::shared_ptr<Material::Material> material;
     float t;
     bool front_face;
 
@@ -52,12 +56,15 @@ class Sphere : public Hittable
 private:
     vec3 m_center;
     float m_radius;
+    std::shared_ptr<Material::Material> m_material;
+
 public:
     Sphere() = delete;
 
-    Sphere(const vec3 & center, float radius):
+    Sphere(const vec3 & center, float radius, std::shared_ptr<Material::Material> material):
         m_center(center),
-        m_radius(radius) {}
+        m_radius(radius),
+        m_material(material) {}
     
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
 };
@@ -85,6 +92,7 @@ bool Sphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
     rec.point = r.at(t);
     vec3 outward_normal = (rec.point - m_center) / m_radius;
     rec.set_face_normal(r, outward_normal);
+    rec.material = m_material;
 
     return true;
 }

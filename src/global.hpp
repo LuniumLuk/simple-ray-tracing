@@ -25,7 +25,7 @@ using vec2 = glm::vec2;
 
 // Global variables & Utility functions
 
-#include <limits>
+#include <limits.h>
 #include <random>
 
 const float FLOAT_INFINITY = std::numeric_limits<float>::infinity();
@@ -58,10 +58,21 @@ inline vec3 random_vec3(float min, float max)
     return vec3(random_float(min, max), random_float(min, max), random_float(min, max));
 }
 
+inline bool zero_vec3(const vec3 & v)
+{
+    const float EPSILON = 1e-6;
+    return (fabsf(v.x) < EPSILON) && (fabsf(v.y) < EPSILON) && (fabsf(v.z) < EPSILON);
+}
+
 vec3 random_unit_vector()
 {
     vec3 p = random_vec3(-1.0f, 1.0f);
     return glm::normalize(p);
+}
+
+vec3 random_in_unit_sphere()
+{
+    return random_unit_vector() * random_float();
 }
 
 vec3 random_unit_hemisphere(const vec3 & normal) {
@@ -72,9 +83,15 @@ vec3 random_unit_hemisphere(const vec3 & normal) {
         return -random_unit;
 }
 
+vec3 random_in_unit_disk() {
+    vec3 p = vec3(random_float(-1.0f, 1.0f), random_float(-1.0f, 1.0f), 0.0f);
+    return glm::normalize(p) * random_float();
+}
+
 // Timer
 
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 class Timer
