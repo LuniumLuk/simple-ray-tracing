@@ -18,9 +18,9 @@ using vec2 = glm::vec2;
 
 // Macro functions
 
-#define min(a,b) ((a)<(b)?(a):(b))
-#define max(a,b) ((a)>(b)?(a):(b))
-#define clamp(x,a,b) min(max(x,a),b)
-#define lerp(a,b,c) (a*(1.0f-c)+b*c)
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define CLAMP(x,a,b) MIN(MAX(x,a),b)
+#define LERP(a,b,c) (a*(1.0f-c)+b*c)
 
 #endif

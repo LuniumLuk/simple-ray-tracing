@@ -7,6 +7,10 @@ SOURCEDIR  	:= src
 INCLUDES   	:= -I$(SOURCEDIR)
 HEADERS    	:= $(wildcard $(addprefix $(SOURCEDIR)/, *.hpp))
 
+ifeq ($(OS),Windows_NT)
+	RM	    := del
+endif
+
 all: $(TARGET)
 
 run: all

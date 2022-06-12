@@ -172,8 +172,8 @@ public:
      */
     vec4 sample(const vec2 & uv) const
     {
-        float fx = clamp(uv.x, 0.0f, 1.0f) * m_width - 0.5f;
-        float fy = clamp(uv.y, 0.0f, 1.0f) * m_height - 0.5f;
+        float fx = CLAMP(uv.x, 0.0f, 1.0f) * m_width - 0.5f;
+        float fy = CLAMP(uv.y, 0.0f, 1.0f) * m_height - 0.5f;
         int x0 = static_cast<int>(floor(fx));
         int y0 = static_cast<int>(floor(fy));
         float alpha_x = fx - (float)x0;
@@ -187,8 +187,8 @@ public:
         if (x0 == m_width - 1) x1 = x0;
         if (y0 == m_height - 1) y1 = y0;
 
-        return  lerp( lerp(pixel_at(x0, y0), pixel_at(x1, y0), alpha_x),
-                      lerp(pixel_at(x0, y1), pixel_at(x1, y1), alpha_x),
+        return  LERP( LERP(pixel_at(x0, y0), pixel_at(x1, y0), alpha_x),
+                      LERP(pixel_at(x0, y1), pixel_at(x1, y1), alpha_x),
                       alpha_y );
     }
 
