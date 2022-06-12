@@ -137,7 +137,7 @@ public:
      */
     float & pixel_at(int x, int y, int c)
     {
-        int pos = (x + y * m_width) * m_channels + c;
+        int pos = (x + (m_height - 1 - y) * m_width) * m_channels + c;
         return m_data[pos];
     }
 
@@ -147,7 +147,7 @@ public:
      */
     vec4 pixel_at(int x, int y) const
     {
-        int pos = (x + y * m_width) * m_channels;
+        int pos = (x + (m_height - 1 - y) * m_width) * m_channels;
         if (m_channels == 3)
         {
             return vec4(

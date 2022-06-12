@@ -33,6 +33,12 @@ struct HitRecord
     vec3 point;
     vec3 normal;
     float t;
+    bool front_face;
+
+    inline void set_face_normal(const Ray & r, const vec3 & outward_normal) {
+        front_face = glm::dot(r.direction(), outward_normal) < 0;
+        normal = front_face ? outward_normal : -outward_normal;
+    }
 };
 
 class Hittable
@@ -77,9 +83,46 @@ bool Sphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
 
     rec.t = t;
     rec.point = r.at(t);
-    rec.normal = (rec.point - m_center) / m_radius;
+    vec3 outward_normal = (rec.point - m_center) / m_radius;
+    rec.set_face_normal(r, outward_normal);
 
     return true;
+}
+
+class HittableList : public Hittable
+{
+private:
+    std::vector<std::shared_ptr<Hittable> > m_objects;
+
+public:
+    HittableList() {}
+
+    void clear() { m_objects.clear(); }
+    void add(std::shared_ptr<Hittable> object)
+    {
+        m_objects.push_back(object);
+    }
+
+    virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+};
+
+bool HittableList::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
+{
+    HitRecord temp_rec;
+    bool is_hit = false;
+    float t_closest = t_max;
+
+    for (int i = 0; i < m_objects.size(); i++)
+    {
+        if (m_objects[i]->hit(r, t_min, t_closest, temp_rec))
+        {
+            is_hit = true;
+            t_closest = temp_rec.t;
+            rec = temp_rec;
+        }
+    }
+
+    return is_hit;
 }
 
 
