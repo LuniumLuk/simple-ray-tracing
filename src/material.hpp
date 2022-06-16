@@ -35,7 +35,7 @@ public:
             scatter_direction = rec.normal;
         }
 
-        scattered = Geometry::Ray(rec.point, scatter_direction);
+        scattered = Geometry::Ray(rec.point, scatter_direction, r_in.time());
         attenuation = m_albedo;
         return true;
     }
@@ -57,7 +57,7 @@ public:
     ) const override
     {
         vec3 reflected = glm::reflect(glm::normalize(r_in.direction()), rec.normal);
-        scattered = Geometry::Ray(rec.point, reflected + m_fuzz * random_in_unit_sphere());
+        scattered = Geometry::Ray(rec.point, reflected + m_fuzz * random_in_unit_sphere(), r_in.time());
         attenuation = m_albedo;
         return (glm::dot(scattered.direction(), rec.normal) > 0);
     }
@@ -105,7 +105,7 @@ public:
         else
             direction = refract(unit_direction, rec.normal, refraction_ratio);
 
-        scattered = Geometry::Ray(rec.point, direction);
+        scattered = Geometry::Ray(rec.point, direction, r_in.time());
         return true;
     }
 };

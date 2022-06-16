@@ -90,53 +90,20 @@ vec3 random_in_unit_disk() {
 
 // Timer
 
-#include <stdio.h>
 #include <string.h>
-#include <time.h>
+#define DURATION_STR_LENGTH 24
 
-class Timer
+// duration in seconds
+void get_duration_str(float duration, char * buffer)
 {
-private:
-    timespec    m_timer_start;
-    char*       m_timer_name;
+    int hour, minute;
+    float second;
+    minute = (int)duration / 60;
+    second = duration - (float)(minute * 60);
+    hour = minute / 60;
+    minute %= 60;
+    sprintf(buffer, "%02d:%02d:%05.2fs", hour, minute, second);
+}
 
-public:
-    Timer()
-    {
-        m_timer_name = new char[8];
-        strcpy(m_timer_name, "Default");
-
-        clock_gettime(CLOCK_REALTIME, &m_timer_start);
-    }
-    Timer(const char* name)
-    {
-        m_timer_name = new char[strlen(name) + 1];
-        strcpy(m_timer_name, name);
-
-        clock_gettime(CLOCK_REALTIME, &m_timer_start);
-    }
-
-    ~Timer()
-    {
-        tick();
-        delete[] m_timer_name;
-    }
-
-    void tick() {
-        timespec timer_end;
-        clock_gettime(CLOCK_REALTIME, &timer_end);
-
-        double duration;
-        if (timer_end.tv_nsec > m_timer_start.tv_nsec)
-        {
-            duration = (timer_end.tv_sec - m_timer_start.tv_sec - 1) + (double)(1e9 + timer_end.tv_nsec - m_timer_start.tv_nsec) / 1e9;
-        }
-        else
-        {
-            duration = (timer_end.tv_sec - m_timer_start.tv_sec) + (double)(timer_end.tv_nsec - m_timer_start.tv_nsec) / 1e9;
-        }
-        printf("[INFO] Timer (%s) : %.6fs (%.4fms)\n", m_timer_name, duration, duration * 1e3);
-    }
-};
 
 #endif

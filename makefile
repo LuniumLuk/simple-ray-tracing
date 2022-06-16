@@ -1,5 +1,5 @@
 CXX 		:= g++
-CFLAGS   	:= -g -std=c++11 -Wformat
+CFLAGS   	:= -g -std=c++11 -Wformat -fopenmp
 
 TARGET		:= main
 

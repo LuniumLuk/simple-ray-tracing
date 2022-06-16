@@ -17,6 +17,7 @@ private:
 
     vec3 m_u, m_v, m_w;
     float m_lens_radius;
+    float m_shutter_speed;
 
 public:
     Camera(
@@ -26,7 +27,8 @@ public:
         float vertical_fov,
         float aspect_ratio,
         float aperture,
-        float focal_lenght
+        float focal_lenght,
+        float shutter_speed
     )
     {
         float theta = degree_to_radian(vertical_fov);
@@ -44,6 +46,8 @@ public:
         m_lower_left_corner = m_origin - m_horizontal * 0.5f - m_vertical * 0.5f - focal_lenght * m_w;
 
         m_lens_radius = aperture * 0.5f;
+
+        m_shutter_speed = shutter_speed;
     }
 
     Geometry::Ray get_ray(float s, float t) const
@@ -53,7 +57,8 @@ public:
 
         return Geometry::Ray(
             m_origin + offset, 
-            m_lower_left_corner + s * m_horizontal + t * m_vertical - m_origin - offset
+            m_lower_left_corner + s * m_horizontal + t * m_vertical - m_origin - offset,
+            random_float(0.0f, m_shutter_speed)
         );
     }
 };

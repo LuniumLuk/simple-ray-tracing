@@ -14,16 +14,19 @@ class Ray
 private:
     vec3 m_origin;
     vec3 m_direction;
+    float m_time;
 
 public:
     Ray() = default;
 
-    Ray(vec3 origin, vec3 direction):
+    Ray(vec3 origin, vec3 direction, float time):
         m_origin(origin),
-        m_direction(direction) {}
+        m_direction(direction),
+        m_time(time) {}
 
     vec3 origin() const { return m_origin; }
     vec3 direction() const { return m_direction; }
+    float time() const { return m_time; }
 
     vec3 at(float t) const
     {
@@ -131,6 +134,67 @@ bool HittableList::hit(const Ray & r, float t_min, float t_max, HitRecord & rec)
     }
 
     return is_hit;
+}
+
+class MovingSphere : public Hittable
+{
+private:
+    vec3 m_center0, m_center1;
+    float m_time0, m_time1;
+    float m_radius;
+    std::shared_ptr<Material::Material> m_material;
+
+public:
+    MovingSphere() = delete;
+
+    MovingSphere(
+        const vec3 & center0, const vec3 & center1,
+        float time0, float time1,
+        float radius, std::shared_ptr<Material::Material> material
+    ):
+        m_center0(center0),
+        m_center1(center1),
+        m_time0(time0),
+        m_time1(time1),
+        m_radius(radius),
+        m_material(material) {}
+    
+    vec3 center(float time) const;
+    
+    virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+};
+
+vec3 MovingSphere::center(float time) const
+{
+    return m_center0 + ((time - m_time0) / (m_time1 - m_time0)) * (m_center1 - m_center0);
+}
+
+bool MovingSphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
+{
+    vec3 oc = r.origin() - center(r.time());
+    float a = glm::dot(r.direction(), r.direction());
+    float half_b = glm::dot(oc, r.direction());
+    float c = glm::dot(oc, oc) - m_radius * m_radius;
+
+    float discriminant = half_b * half_b - a * c;
+    if (discriminant < 0) return false;
+    float sqrt_d = sqrtf(discriminant);
+
+    // Find the nearest acceptable hit point within the t range
+    float t = (-half_b - sqrt_d) / a;
+    if (t < t_min || t > t_max)
+    {
+        t = (-half_b + sqrt_d) / a;
+        if (t < t_min || t > t_max) return false;
+    }
+
+    rec.t = t;
+    rec.point = r.at(t);
+    vec3 outward_normal = (rec.point - center(r.time())) / m_radius;
+    rec.set_face_normal(r, outward_normal);
+    rec.material = m_material;
+
+    return true;
 }
 
 
