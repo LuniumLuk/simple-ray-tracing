@@ -8,6 +8,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "thirdparty/stb/stb_image_write.h"
 #include "global.hpp"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace Utility
 {
@@ -92,7 +95,7 @@ public:
     }
 
     /**
-     * Save image in hdr format
+     * Save image
      */
     void save(const char * filename)
     {
@@ -131,11 +134,17 @@ public:
         }
     }
 
+    float & operator () (int x, int y, int c)
+    {
+        int pos = (x + (m_height - 1 - y) * m_width) * m_channels + c;
+        return m_data[pos];
+    }
+
     /**
      * Access to image data at certain integer position
      * (Deprecate)
      */
-    float & pixel_at(int x, int y, int c)
+    float pixel_at(int x, int y, int c) const
     {
         int pos = (x + (m_height - 1 - y) * m_width) * m_channels + c;
         return m_data[pos];
@@ -200,6 +209,74 @@ public:
     float * data() const { return m_data; }
 };
 
+float gaussian(float value, float sigma)
+{
+    return expf(-fabs(value) / (2.0f * sigma * sigma));
+}
+
+std::vector<float> generate_gaussian_kernel(int size, float sigma)
+{
+    int half_size = abs(size) / 2;
+    int k_index = 0;
+    std::vector<float> kernel;
+    kernel.reserve(size * size);
+
+    for (int x = -half_size; x <= half_size; x++)
+    {
+        for (int y = -half_size; y <= half_size; y++)
+        {
+            kernel[k_index] = gaussian(x * x + y * y, sigma);
+            k_index++;
+        }
+    }
+
+    return kernel;
+}
+
+Image bilateral_filtering(const Image & image, int kernel_size, float sigma_r, float sigma_s)
+{
+    assert(kernel_size % 2 == 1);
+
+    auto space_kernel = generate_gaussian_kernel(kernel_size, sigma_s);
+
+    int half_size = kernel_size / 2;
+    clock_t start_timestamp = clock();
+    Image result(image.width(), image.height(), image.channels());
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int x = 0; x < image.width(); x++)
+    for (int y = 0; y < image.height(); y++)
+    {
+        for (int c = 0; c < image.channels(); c++)
+        {
+            float weight = 0.0f;
+            float value = 0.0f;
+            float factor = 0.0f;
+            int k_index = 0;
+            for (int k_x = x - half_size; k_x <= x + half_size; k_x++)
+            for (int k_y = y - half_size; k_y <= y + half_size; k_y++)
+            {
+                int s_x = CLAMP(k_x, 0, image.width() - 1);
+                int s_y = CLAMP(k_y, 0, image.height() - 1);
+                factor = gaussian(image.pixel_at(s_x, s_y, c) - image.pixel_at(x, y, c), sigma_r)
+                       * space_kernel[k_index];
+                k_index++;
+                weight += factor;
+                value += factor * image.pixel_at(s_x, s_y, c);
+            }
+            result(x, y, c) = value / weight;
+        }
+    }
+
+    char total_time[DURATION_STR_LENGTH];
+    float duration = ((float)(clock() - start_timestamp) / CLOCKS_PER_SEC);
+    get_duration_str(duration, total_time);
+    printf("[INFO] Bilateral filtering time: %s\n", total_time);
+
+    return result;
+}
 
 }
 

@@ -4,7 +4,7 @@
 #include <time.h>
 #include "global.hpp"
 #include "image.hpp"
-#include "mesh.hpp"
+// #include "mesh.hpp"
 #include "geometry.hpp"
 #include "camera.hpp"
 #include "material.hpp"
@@ -13,9 +13,9 @@
 #include <omp.h>
 #endif
 
-#define WRITE_COLOR(image,x,y,color) do { image.pixel_at(x, y, 0) = color.r;  \
-                                          image.pixel_at(x, y, 1) = color.g;  \
-                                          image.pixel_at(x, y, 2) = color.b; } while(0)
+#define WRITE_COLOR(image,x,y,color) do { image(x, y, 0) = color.r;  \
+                                          image(x, y, 1) = color.g;  \
+                                          image(x, y, 2) = color.b; } while(0)
 
 vec4 ray_color(const Geometry::Ray & r, const Geometry::Hittable & world, int depth);
 
@@ -26,8 +26,8 @@ int main()
     const float aspect_ratio = 3.0f / 2.0f;
     const int scr_h = 400;
     const int scr_w = static_cast<int>(scr_h * aspect_ratio);
-    const int samples_per_pixel = 64;
-    const int max_depth = 32;
+    const int samples_per_pixel = 500;
+    const int max_depth = 50;
 
     Utility::Image image(scr_w, scr_h, 3);
 
@@ -86,7 +86,8 @@ int main()
     get_duration_str(duration, total_time);
     printf("[INFO] Done! Total time: %s\n", total_time);
 
-    image.save("result.png");
+    auto res = Utility::bilateral_filtering(image, 9, 0.1f, 10.0f);
+    res.save("result.png");
 
     return 0;
 }
