@@ -30,6 +30,8 @@ using vec2 = glm::vec2;
 
 const float FLOAT_INFINITY = std::numeric_limits<float>::infinity();
 const float PI = 3.1415926535897932385f;
+const float EPSILON = 1e-6f;
+
 
 inline float degree_to_radian(float degree)
 {
@@ -60,7 +62,6 @@ inline vec3 random_vec3(float min, float max)
 
 inline bool zero_vec3(const vec3 & v)
 {
-    const float EPSILON = 1e-6;
     return (fabsf(v.x) < EPSILON) && (fabsf(v.y) < EPSILON) && (fabsf(v.z) < EPSILON);
 }
 

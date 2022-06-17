@@ -9,7 +9,9 @@
 #include "camera.hpp"
 #include "material.hpp"
 #include "scene.hpp"
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #define WRITE_COLOR(image,x,y,color) do { image.pixel_at(x, y, 0) = color.r;  \
                                           image.pixel_at(x, y, 1) = color.g;  \
@@ -22,36 +24,42 @@ int main()
     // Image
 
     const float aspect_ratio = 3.0f / 2.0f;
-    const int scr_h = 800;
+    const int scr_h = 400;
     const int scr_w = static_cast<int>(scr_h * aspect_ratio);
-    const int samples_per_pixel = 256;
-    const int max_depth = 48;
+    const int samples_per_pixel = 64;
+    const int max_depth = 32;
 
     Utility::Image image(scr_w, scr_h, 3);
 
     // World
 
-    Geometry::HittableList world = generate_random_scene();
+    Geometry::HittableList world = generate_simple_scene();
+    // Geometry::HittableList world = generate_random_scene();
 
     // Camera
 
-    vec3 eye = vec3(13.0f, 2.0f, 3.0f);
+    // vec3 eye = vec3(13.0f, 2.0f, 3.0f);
+    vec3 eye = vec3( 0.0f, 4.0f, 6.0f);
     vec3 at  = vec3( 0.0f, 0.0f, 0.0f);
     vec3 up  = vec3( 0.0f, 1.0f, 0.0f);
     float aperture = 0.1f;
     float focal_length = 10.0f;
 
-    Scene::Camera camera(eye, at, up, 20.0f, aspect_ratio, aperture, focal_length, 1.0f);
+    Scene::Camera camera(eye, at, up, 90.0f, aspect_ratio, aperture, focal_length, 1.0f);
 
     // Render
     clock_t last_timestamp = clock();
     clock_t start_timestamp = last_timestamp;
     float duration;
     char estimate_time[DURATION_STR_LENGTH];
+#ifdef _OPENMP
     printf("[INFO] Omp max threads: %d\n", omp_get_max_threads());
+#endif
     for (int j = image.height() - 1; j >= 0; j--)
     {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
         for (int i = 0; i < image.width(); ++i)
         {
             vec4 pixel_color(0.0f, 0.0f, 0.0f, 1.0f);
@@ -92,13 +100,15 @@ vec4 ray_color(const Geometry::Ray & r, const Geometry::Hittable & world, int de
     {
         Geometry::Ray scattered;
         vec4 attenuation;
+        vec4 emissive = rec.material->emitted();
         if (rec.material->scatter(r, rec, attenuation, scattered))
         {
-            return attenuation * ray_color(scattered, world, depth - 1);
+            return emissive + attenuation * ray_color(scattered, world, depth - 1);
         }
-        return COLOR_BLACK;
+        return emissive;
     }
-    vec3 unit_direction = glm::normalize(r.direction());
-    float k = (unit_direction.y + 1.0f) * 0.5f;
-    return LERP(COLOR_WHITE, COLOR_SKY, k);
+    return COLOR_BLACK;
+    // vec3 unit_direction = glm::normalize(r.direction());
+    // float k = (unit_direction.y + 1.0f) * 0.5f;
+    // return LERP(COLOR_WHITE, COLOR_SKY, k);
 }

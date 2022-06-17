@@ -1,5 +1,5 @@
 CXX 		:= g++
-CFLAGS   	:= -g -std=c++11 -Wformat -fopenmp
+CFLAGS   	:= -g -std=c++11 -Wformat
 
 TARGET		:= main
 
@@ -9,6 +9,7 @@ HEADERS    	:= $(wildcard $(addprefix $(SOURCEDIR)/, *.hpp))
 
 ifeq ($(OS),Windows_NT)
 	RM	    := del
+	CFLAGS	:= $(CFLAGS) -fopenmp
 endif
 
 all: $(TARGET)

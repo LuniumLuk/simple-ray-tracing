@@ -197,6 +197,91 @@ bool MovingSphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec)
     return true;
 }
 
+class Triangle : public Hittable
+{
+private:
+    vec3 m_v0, m_v1, m_v2;
+    vec3 m_normal;
+    std::shared_ptr<Material::Material> m_material;
+
+public:
+    Triangle() = delete;
+
+    Triangle(
+        const vec3 & v0,
+        const vec3 & v1,
+        const vec3 & v2,
+        std::shared_ptr<Material::Material> material
+    ):
+        m_v0(v0),
+        m_v1(v1),
+        m_v2(v2),
+        m_material(material)
+    {
+        m_normal = glm::cross(v1 - v0, v2 - v0);
+    }
+    
+    vec3 normal() const { return m_normal; }
+    
+    virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+};
+
+bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
+{
+    vec3 v01 = m_v1 - m_v0;
+    vec3 v12 = m_v2 - m_v1;
+    vec3 v20 = m_v0 - m_v2;
+
+    // 1. determine whether the ray is parellel to the triangle
+    float N_dot_direction = glm::dot(m_normal, r.direction());
+    if (fabs(N_dot_direction) < EPSILON)
+    {
+        return false;
+    }
+
+    // 2. determin whether the triangle is at opposite direction of the ray
+    float d = -glm::dot(m_normal, m_v0);
+    float t = -(glm::dot(m_normal, r.origin()) + d) / N_dot_direction;
+    if (t < t_min || t > t_max)
+    {
+        return false;
+    }
+
+    // 3. get the intersection point
+    vec3 P = r.at(t);
+
+    // 4. inside-out test for P
+    vec3 inside_out_test;
+
+    vec3 v0P = P - m_v0;
+    inside_out_test = glm::cross(v01, v0P);
+    if (glm::dot(m_normal, inside_out_test) < 0)
+    {
+        return false;
+    }
+
+    vec3 v1P = P - m_v1;
+    inside_out_test = glm::cross(v12, v1P);
+    if (glm::dot(m_normal, inside_out_test) < 0)
+    {
+        return false;
+    }
+
+    vec3 v2P = P - m_v2;
+    inside_out_test = glm::cross(v20, v2P);
+    if (glm::dot(m_normal, inside_out_test) < 0)
+    {
+        return false;
+    }
+
+    rec.t = t;
+    rec.point = P;
+    vec3 outward_normal = m_normal;
+    rec.set_face_normal(r, outward_normal);
+    rec.material = m_material;
+    
+    return true;
+}
 
 }
 

@@ -13,6 +13,10 @@ public:
     virtual bool scatter(
         const Geometry::Ray & r_in, const Geometry::HitRecord & rec, vec4 & attenuation, Geometry::Ray & scattered
     ) const = 0;
+
+    virtual vec4 emitted() const {
+        return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    }
 };
 
 class Lambertian : public Material
@@ -107,6 +111,27 @@ public:
 
         scattered = Geometry::Ray(rec.point, direction, r_in.time());
         return true;
+    }
+};
+
+class Emissive : public Material
+{
+private:
+    vec4 m_color;
+
+public:
+    Emissive(const vec4 & color): 
+        m_color(color) {}
+
+    virtual bool scatter(
+        const Geometry::Ray & r_in, const Geometry::HitRecord & rec, vec4 & attenuation, Geometry::Ray & scattered
+    ) const override
+    {
+        return false;
+    }
+
+    virtual vec4 emitted() const override {
+        return m_color;
     }
 };
 

@@ -64,5 +64,38 @@ Geometry::HittableList generate_random_scene() {
     return world;
 }
 
+Geometry::HittableList generate_simple_scene() {
+    Geometry::HittableList world;
+
+    auto ground_material = make_shared<Material::Lambertian>(vec4(0.5f, 0.5f, 0.5f, 1.0f));
+    world.add(make_shared<Geometry::Sphere>(vec3(0.0f, -1000.0f, 0.0f), 1000.0f, ground_material));
+
+    auto material1 = make_shared<Material::Dielectric>(1.5);
+    auto material2 = make_shared<Material::Lambertian>(vec4(0.4f, 0.2f, 0.1f, 1.0f));
+    auto material3 = make_shared<Material::Metal>(vec4(0.7f, 0.6f, 0.5f, 1.0f), 0.0f);
+    world.add(make_shared<Geometry::Sphere>(vec3( 0.0f, 1.0f, 0.0f), 1.0f, material1));
+    world.add(make_shared<Geometry::Sphere>(vec3(-2.0f, 1.0f, 2.0f), 1.0f, material2));
+    world.add(make_shared<Geometry::Sphere>(vec3( 2.0f, 1.0f, 2.0f), 1.0f, material3));
+
+    auto material4 = make_shared<Material::Emissive>(vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    world.add(make_shared<Geometry::Triangle>(
+        vec3(-3.0f, 0.0f, -2.0f),
+        vec3( 0.0f, 4.0f, -2.0f),
+        vec3( 3.0f, 0.0f, -2.0f),
+        material4));
+    world.add(make_shared<Geometry::Triangle>(
+        vec3(-4.0f, 0.0f, 0.0f),
+        vec3(-4.0f, 4.0f, 0.0f),
+        vec3(-4.0f, 0.0f, 4.0f),
+        material4));
+    world.add(make_shared<Geometry::Triangle>(
+        vec3( 4.0f, 0.0f, 0.0f),
+        vec3( 4.0f, 4.0f, 0.0f),
+        vec3( 4.0f, 0.0f, 4.0f),
+        material4));
+
+    return world;
+}
+
 
 #endif
