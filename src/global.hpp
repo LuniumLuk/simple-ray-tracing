@@ -50,6 +50,11 @@ inline float random_float(float min, float max)
     return min + (max - min) * random_float();
 }
 
+inline int random_int(int min, int max)
+{
+    return static_cast<int>(random_float(min, max));
+}
+
 inline vec3 random_vec3()
 {
     return vec3(random_float(), random_float(), random_float());

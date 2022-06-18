@@ -3,6 +3,9 @@
 
 #include "global.hpp"
 #include "geometry.hpp"
+#include "image.hpp"
+
+using std::make_shared;
 
 namespace Material
 {
@@ -22,10 +25,13 @@ public:
 class Lambertian : public Material
 {
 private:
-    vec4 m_albedo;
+    shared_ptr<Utility::Texture> m_albedo;
 
 public:
-    Lambertian(const vec4 & albedo): m_albedo(albedo) {}
+    Lambertian(const vec4 & albedo): 
+        m_albedo(make_shared<Utility::SolidColor>(albedo)) {}
+
+    Lambertian(shared_ptr<Utility::Texture> texture): m_albedo(texture) {}
 
     virtual bool scatter(
         const Geometry::Ray & r_in, const Geometry::HitRecord & rec, vec4 & attenuation, Geometry::Ray & scattered
@@ -40,7 +46,7 @@ public:
         }
 
         scattered = Geometry::Ray(rec.point, scatter_direction, r_in.time());
-        attenuation = m_albedo;
+        attenuation = m_albedo->value(rec.u, rec.v, rec.normal);
         return true;
     }
 };

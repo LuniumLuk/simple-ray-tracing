@@ -10,15 +10,17 @@ using std::shared_ptr;
 
 #define RANDOM_COLOR() random_vec3()
 
-Geometry::HittableList generate_random_scene() {
+Geometry::BVH::Node generate_random_scene() {
     Geometry::HittableList world;
 
-    auto ground_material = make_shared<Material::Lambertian>(vec4(0.5f, 0.5f, 0.5f, 1.0f));
+    // auto ground_material = make_shared<Material::Lambertian>(vec4(0.5f, 0.5f, 0.5f, 1.0f));
+    auto checker = make_shared<Utility::CheckerTexture>(vec4(0.2f, 0.3f, 0.1f, 1.0f), vec4(0.9f, 0.9f, 0.9f, 1.0f));
+    auto ground_material = make_shared<Material::Lambertian>(checker);
     world.add(make_shared<Geometry::Sphere>(vec3(0.0f, -1000.0f, 0.0f), 1000.0f, ground_material));
 
-    for (int a = -3; a < 3; a++)
+    for (int a = -11; a < 11; a++)
     {
-        for (int b = -2; b < 2; b++)
+        for (int b = -11; b < 11; b++)
         {
             float material_choice = random_float();
             vec3 center(a + 0.9f * random_float(), 0.2f, b + 0.9f * random_float());
@@ -57,11 +59,20 @@ Geometry::HittableList generate_random_scene() {
     auto material2 = make_shared<Material::Lambertian>(vec4(0.4f, 0.2f, 0.1f, 1.0f));
     auto material3 = make_shared<Material::Metal>(vec4(0.7f, 0.6f, 0.5f, 1.0f), 0.0f);
 
-    world.add(make_shared<Geometry::Sphere>(vec3(0.0f, 1.0f, 0.0f),  1.0f, material1));
-    world.add(make_shared<Geometry::Sphere>(vec3(-4.0f, 1.0f, 0.0f), 1.0f, material2));
-    world.add(make_shared<Geometry::Sphere>(vec3(4.0f, 1.0f, 0.0f),  1.0f, material3));
+    // world.add(make_shared<Geometry::Triangle>(
+    //     vec3( 0.0f, 2.0f, 2.0f),
+    //     vec3(-1.0f, 1.0f, 0.0f),
+    //     vec3(-2.0f, 0.0f, 2.0f),
+    //     ground_material
+    // ));
 
-    return world;
+    world.add(make_shared<Geometry::Sphere>(vec3( 0.0f, 1.0f, 0.0f), 1.0f, material1));
+    world.add(make_shared<Geometry::Sphere>(vec3(-4.0f, 1.0f, 0.0f), 1.0f, material2));
+    world.add(make_shared<Geometry::Sphere>(vec3( 4.0f, 1.0f, 0.0f), 1.0f, material3));
+
+    Geometry::BVH::Node world_node(world, 0.0f, 1.0f);
+
+    return world_node;
 }
 
 Geometry::HittableList generate_simple_scene() {

@@ -3,6 +3,9 @@
 
 #include "global.hpp"
 #include <memory>
+#include <algorithm>
+
+using std::shared_ptr;
 
 namespace Material { class Material; }
 
@@ -84,8 +87,10 @@ struct HitRecord
 {
     vec3 point;
     vec3 normal;
-    std::shared_ptr<Material::Material> material;
+    shared_ptr<Material::Material> material;
     float t;
+    float u;
+    float v;
     bool front_face;
 
     inline void set_face_normal(const Ray & r, const vec3 & outward_normal) {
@@ -101,17 +106,26 @@ public:
     virtual bool bounding_box(float time0, float time1, AABB & output_box) const = 0;
 };
 
+
+void get_sphere_uv(const vec3 & p, float & u, float & v) {
+    float theta = acosf(-p.y);
+    float phi = atan2f(-p.z, p.x) + PI;
+
+    u = phi / (2 * PI);
+    v = theta / PI;
+}
+
 class Sphere : public Hittable
 {
 private:
     vec3 m_center;
     float m_radius;
-    std::shared_ptr<Material::Material> m_material;
+    shared_ptr<Material::Material> m_material;
 
 public:
     Sphere() = delete;
 
-    Sphere(const vec3 & center, float radius, std::shared_ptr<Material::Material> material):
+    Sphere(const vec3 & center, float radius, shared_ptr<Material::Material> material):
         m_center(center),
         m_radius(radius),
         m_material(material) {}
@@ -144,6 +158,7 @@ bool Sphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
     vec3 outward_normal = (rec.point - m_center) / m_radius;
     rec.set_face_normal(r, outward_normal);
     rec.material = m_material;
+    get_sphere_uv(outward_normal, rec.u, rec.v);
 
     return true;
 }
@@ -159,17 +174,17 @@ bool Sphere::bounding_box(float time0, float time1, AABB & output_box) const
 class HittableList : public Hittable
 {
 private:
-    std::vector<std::shared_ptr<Hittable> > m_objects;
+    std::vector<shared_ptr<Hittable> > m_objects;
 
 public:
     HittableList() {}
 
     void clear() { m_objects.clear(); }
-    void add(std::shared_ptr<Hittable> object)
+    void add(shared_ptr<Hittable> object)
     {
         m_objects.push_back(object);
     }
-    const std::vector<std::shared_ptr<Hittable> > & objects() const { return m_objects; }
+    const std::vector<shared_ptr<Hittable> > & objects() const { return m_objects; }
 
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
     virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
@@ -220,7 +235,7 @@ private:
     vec3 m_center0, m_center1;
     float m_time0, m_time1;
     float m_radius;
-    std::shared_ptr<Material::Material> m_material;
+    shared_ptr<Material::Material> m_material;
 
 public:
     MovingSphere() = delete;
@@ -228,7 +243,7 @@ public:
     MovingSphere(
         const vec3 & center0, const vec3 & center1,
         float time0, float time1,
-        float radius, std::shared_ptr<Material::Material> material
+        float radius, shared_ptr<Material::Material> material
     ):
         m_center0(center0),
         m_center1(center1),
@@ -284,6 +299,7 @@ bool MovingSphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec)
     vec3 outward_normal = (rec.point - center(r.time())) / m_radius;
     rec.set_face_normal(r, outward_normal);
     rec.material = m_material;
+    get_sphere_uv(outward_normal, rec.u, rec.v);
 
     return true;
 }
@@ -293,7 +309,7 @@ class Triangle : public Hittable
 private:
     vec3 m_v0, m_v1, m_v2;
     vec3 m_normal;
-    std::shared_ptr<Material::Material> m_material;
+    shared_ptr<Material::Material> m_material;
 
 public:
     Triangle() = delete;
@@ -302,7 +318,7 @@ public:
         const vec3 & v0,
         const vec3 & v1,
         const vec3 & v2,
-        std::shared_ptr<Material::Material> material
+        shared_ptr<Material::Material> material
     ):
         m_v0(v0),
         m_v1(v1),
@@ -323,6 +339,7 @@ bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) con
     vec3 v01 = m_v1 - m_v0;
     vec3 v12 = m_v2 - m_v1;
     vec3 v20 = m_v0 - m_v2;
+    float denom = glm::dot(m_normal, m_normal); 
 
     // 1. determine whether the ray is parellel to the triangle
     float N_dot_direction = glm::dot(m_normal, r.direction());
@@ -354,14 +371,14 @@ bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) con
 
     vec3 v1P = P - m_v1;
     inside_out_test = glm::cross(v12, v1P);
-    if (glm::dot(m_normal, inside_out_test) < 0)
+    if ((rec.u = glm::dot(m_normal, inside_out_test)) < 0)
     {
         return false;
     }
 
     vec3 v2P = P - m_v2;
     inside_out_test = glm::cross(v20, v2P);
-    if (glm::dot(m_normal, inside_out_test) < 0)
+    if ((rec.v = glm::dot(m_normal, inside_out_test)) < 0)
     {
         return false;
     }
@@ -371,6 +388,9 @@ bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) con
     vec3 outward_normal = m_normal;
     rec.set_face_normal(r, outward_normal);
     rec.material = m_material;
+    // Here we use barycentric coordinates as texture uv
+    rec.u /= denom;
+    rec.v /= denom;
     
     return true;
 }
@@ -393,8 +413,8 @@ namespace BVH {
 class Node : public Hittable
 {
 private:
-    std::shared_ptr<Hittable> m_left;
-    std::shared_ptr<Hittable> m_right;
+    shared_ptr<Hittable> m_left;
+    shared_ptr<Hittable> m_right;
     AABB m_box;
 
 public:
@@ -403,7 +423,7 @@ public:
     Node(const HittableList & list, float time0, float time1):
         Node(list.objects(), 0, list.objects().size(), time0, time1) {}
 
-    Node(const std::vector<std::shared_ptr<Hittable> > & src_objects,
+    Node(const std::vector<shared_ptr<Hittable> > & src_objects,
          size_t start, size_t end, float time0, float time1);
 
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
@@ -425,6 +445,78 @@ bool Node::hit(const Ray & r, float t_min, float t_max, HitRecord& rec) const
     bool hit_right = m_right->hit(r, t_min, hit_left ? rec.t : t_max, rec);
 
     return hit_left || hit_right;
+}
+
+inline bool box_compare(const shared_ptr<Hittable> a, const shared_ptr<Hittable> b, int axis) {
+    AABB box_a;
+    AABB box_b;
+
+    if (!a->bounding_box(0, 0, box_a) || !b->bounding_box(0, 0, box_b))
+        printf("[ERROR] No bounding box in bvh_node constructor.\n");
+
+    return box_a.min()[axis] < box_b.min()[axis];
+}
+
+
+bool box_x_compare(const shared_ptr<Hittable> a, const shared_ptr<Hittable> b) {
+    return box_compare(a, b, 0);
+}
+
+bool box_y_compare(const shared_ptr<Hittable> a, const shared_ptr<Hittable> b) {
+    return box_compare(a, b, 1);
+}
+
+bool box_z_compare(const shared_ptr<Hittable> a, const shared_ptr<Hittable> b) {
+    return box_compare(a, b, 2);
+}
+
+Node::Node(
+    const std::vector<shared_ptr<Hittable> > & src_objects,
+    size_t start, size_t end, float time0, float time1)
+{
+    auto objects = src_objects; // Create a modifiable array of the source scene objects
+
+    int axis = random_int(0, 2);
+    auto comparator = (axis == 0) ? box_x_compare
+                    : (axis == 1) ? box_y_compare
+                                  : box_z_compare;
+
+    size_t object_span = end - start;
+
+    if (object_span == 1)
+    {
+        m_left = m_right = objects[start];
+    }
+    else if (object_span == 2)
+    {
+        if (comparator(objects[start], objects[start+1]))
+        {
+            m_left = objects[start];
+            m_right = objects[start+1];
+        }
+        else
+        {
+            m_left = objects[start+1];
+            m_right = objects[start];
+        }
+    }
+    else
+    {
+        std::sort(objects.begin() + start, objects.begin() + end, comparator);
+
+        auto mid = start + object_span / 2;
+        m_left = std::make_shared<Node>(objects, start, mid, time0, time1);
+        m_right = std::make_shared<Node>(objects, mid, end, time0, time1);
+    }
+
+    AABB box_left, box_right;
+
+    if (  !m_left->bounding_box (time0, time1, box_left)
+       || !m_right->bounding_box(time0, time1, box_right)
+    )
+        printf("[ERROR] No bounding box in bvh_node constructor.\n");
+
+    m_box = surrounding_box(box_left, box_right);
 }
 
 } // namespace BVH

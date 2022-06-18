@@ -12,6 +12,9 @@
 #include <omp.h>
 #endif
 
+using std::make_shared;
+using std::shared_ptr;
+
 namespace Utility
 {
 
@@ -278,6 +281,67 @@ Image bilateral_filtering(const Image & image, int kernel_size, float sigma_r, f
     return result;
 }
 
-}
+class Texture
+{
+public:
+    virtual vec4 value(float u, float v, const vec3 & p) const = 0;
+};
+
+class SolidColor : public Texture
+{
+private:
+    vec4 m_color;
+
+public:
+    SolidColor() = delete;
+
+    SolidColor(vec4 color): m_color(color) {}
+
+    SolidColor(float r, float g, float b):
+        SolidColor(vec4(r, g, b, 1.0f)) {}
+
+    virtual vec4 value(float u, float v, const vec3 & p) const override
+    {
+        return m_color;
+    }
+};
+
+class CheckerTexture : public Texture
+{
+private:
+    shared_ptr<Texture> m_odd;
+    shared_ptr<Texture> m_even;
+    int m_num;
+
+public:
+    CheckerTexture() = delete;
+
+    CheckerTexture(shared_ptr<Texture> even, shared_ptr<Texture> odd, int num = 10): 
+        m_even(even), m_odd(odd), m_num(num) {}
+
+    CheckerTexture(vec4 color0, vec4 color1, int num = 10): 
+        m_even(make_shared<SolidColor>(color0)), 
+        m_odd(make_shared<SolidColor>(color1)),
+        m_num(num) {}
+
+    virtual vec4 value(float u, float v, const vec3 & p) const override
+    {
+        int x = u * m_num;
+        int y = v * m_num;
+        if ((x % 2 + y % 2) % 2 == 1)
+            return m_odd->value(u, v, p);
+        else
+            return m_even->value(u, v, p);
+        // float sines = sinf(10.0f * p.x) * sinf(10.0f * p.y) * sinf(10.0f * p.z);
+        // if (sines < 0)
+        //     return m_odd->value(u, v, p);
+        // else
+        //     return m_even->value(u, v, p);
+    }
+
+
+};
+
+} // namespace Utility
 
 #endif
