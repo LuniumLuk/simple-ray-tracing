@@ -26,8 +26,8 @@ int main()
     const float aspect_ratio = 3.0f / 2.0f;
     const int scr_h = 400;
     const int scr_w = static_cast<int>(scr_h * aspect_ratio);
-    const int samples_per_pixel = 500;
-    const int max_depth = 50;
+    const int samples_per_pixel = 150;
+    const int max_depth = 25;
 
     Utility::Image image(scr_w, scr_h, 3);
 

@@ -34,6 +34,52 @@ public:
     }
 };
 
+class AABB
+{
+private:
+    vec3 m_min;
+    vec3 m_max;
+
+public:
+    AABB() {}
+
+    AABB(const vec3 & min, const vec3 & max):
+        m_min(min),
+        m_max(max) {}
+
+    vec3 min() const { return m_min; }
+    vec3 max() const { return m_max; }
+
+    bool hit(const Ray & r, double t_min, double t_max) const
+    {
+        for (int a = 0; a < 3; a++)
+        {
+            float invD = 1.0f / r.direction()[a];
+            float t0 = (min()[a] - r.origin()[a]) * invD;
+            float t1 = (max()[a] - r.origin()[a]) * invD;
+            if (invD < 0)
+                std::swap(t0, t1);
+            t_min = fmax(t0, t_min);
+            t_max = fmin(t1, t_max);
+            if (t_max <= t_min)
+                return false;
+        }
+        return true;
+    }
+};
+
+AABB surrounding_box(AABB box0, AABB box1) {
+    vec3 min(fmin(box0.min().x, box1.min().x),
+             fmin(box0.min().y, box1.min().y),
+             fmin(box0.min().z, box1.min().z));
+
+    vec3 max(fmax(box0.max().x, box1.max().x),
+             fmax(box0.max().y, box1.max().y),
+             fmax(box0.max().z, box1.max().z));
+
+    return AABB(min, max);
+}
+
 struct HitRecord
 {
     vec3 point;
@@ -52,6 +98,7 @@ class Hittable
 {
 public:
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const = 0;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const = 0;
 };
 
 class Sphere : public Hittable
@@ -70,6 +117,7 @@ public:
         m_material(material) {}
     
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
 };
 
 bool Sphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
@@ -100,6 +148,14 @@ bool Sphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
     return true;
 }
 
+bool Sphere::bounding_box(float time0, float time1, AABB & output_box) const
+{
+    output_box = AABB(
+        m_center - vec3(m_radius, m_radius, m_radius),
+        m_center + vec3(m_radius, m_radius, m_radius));
+    return true;
+}
+
 class HittableList : public Hittable
 {
 private:
@@ -113,8 +169,10 @@ public:
     {
         m_objects.push_back(object);
     }
+    const std::vector<std::shared_ptr<Hittable> > & objects() const { return m_objects; }
 
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
 };
 
 bool HittableList::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
@@ -134,6 +192,26 @@ bool HittableList::hit(const Ray & r, float t_min, float t_max, HitRecord & rec)
     }
 
     return is_hit;
+}
+
+bool HittableList::bounding_box(float time0, float time1, AABB & output_box) const
+{
+    if (m_objects.empty()) return false;
+
+    AABB temp_box;
+    bool first_box = true;
+
+    for (int i = 0; i < m_objects.size(); i++)
+    {
+        if (!m_objects[i]->bounding_box(time0, time1, temp_box))
+        {
+            return false;
+        }
+        output_box = first_box ? temp_box : surrounding_box(output_box, temp_box);
+        first_box = false;
+    }
+
+    return true;
 }
 
 class MovingSphere : public Hittable
@@ -162,11 +240,24 @@ public:
     vec3 center(float time) const;
     
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
 };
 
 vec3 MovingSphere::center(float time) const
 {
     return m_center0 + ((time - m_time0) / (m_time1 - m_time0)) * (m_center1 - m_center0);
+}
+
+bool MovingSphere::bounding_box(float time0, float time1, AABB & output_box) const
+{
+    AABB box0 = AABB(
+        center(time0) - vec3(m_radius, m_radius, m_radius),
+        center(time0) + vec3(m_radius, m_radius, m_radius));
+    AABB box1 = AABB(
+        center(time1) - vec3(m_radius, m_radius, m_radius),
+        center(time1) + vec3(m_radius, m_radius, m_radius));
+    output_box = surrounding_box(box0, box1);
+    return true;
 }
 
 bool MovingSphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
@@ -224,6 +315,7 @@ public:
     vec3 normal() const { return m_normal; }
     
     virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
 };
 
 bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
@@ -283,6 +375,60 @@ bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) con
     return true;
 }
 
+bool Triangle::bounding_box(float time0, float time1, AABB & output_box) const
+{
+    vec3 min = vec3(MIN(MIN(m_v0.x, m_v1.x), m_v2.x),
+                    MIN(MIN(m_v0.y, m_v1.y), m_v2.y),
+                    MIN(MIN(m_v0.z, m_v1.z), m_v2.z));
+    vec3 max = vec3(MAX(MAX(m_v0.x, m_v1.x), m_v2.x),
+                    MAX(MAX(m_v0.y, m_v1.y), m_v2.y),
+                    MAX(MAX(m_v0.z, m_v1.z), m_v2.z));
+
+    output_box = AABB(min, max);
+    return true;
 }
+
+namespace BVH {
+
+class Node : public Hittable
+{
+private:
+    std::shared_ptr<Hittable> m_left;
+    std::shared_ptr<Hittable> m_right;
+    AABB m_box;
+
+public:
+    Node() = delete;
+
+    Node(const HittableList & list, float time0, float time1):
+        Node(list.objects(), 0, list.objects().size(), time0, time1) {}
+
+    Node(const std::vector<std::shared_ptr<Hittable> > & src_objects,
+         size_t start, size_t end, float time0, float time1);
+
+    virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
+};
+
+bool Node::bounding_box(float time0, float time1, AABB & output_box) const
+{
+    output_box = m_box;
+    return true;
+}
+
+bool Node::hit(const Ray & r, float t_min, float t_max, HitRecord& rec) const
+{
+    if (!m_box.hit(r, t_min, t_max))
+        return false;
+
+    bool hit_left = m_left->hit(r, t_min, t_max, rec);
+    bool hit_right = m_right->hit(r, t_min, hit_left ? rec.t : t_max, rec);
+
+    return hit_left || hit_right;
+}
+
+} // namespace BVH
+
+} // namespace Geometry
 
 #endif
