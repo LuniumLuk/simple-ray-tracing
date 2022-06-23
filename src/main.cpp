@@ -24,28 +24,56 @@ int main()
     // Image
 
     const float aspect_ratio = 3.0f / 2.0f;
-    const int scr_h = 200;
+    const int scr_h = 400;
     const int scr_w = static_cast<int>(scr_h * aspect_ratio);
-    const int samples_per_pixel = 64;
-    const int max_depth = 16;
+    const int samples_per_pixel = 150;
+    const int max_depth = 30;
 
     Utility::Image image(scr_w, scr_h, 3);
 
     // World
 
-    // Geometry::HittableList world = generate_simple_scene();
-    auto world = generate_random_scene();
+    Geometry::BVH::Node world;
+    vec3 eye, at, up;
+    float fov;
+
+    switch (3)
+    {
+        case 0:
+            world = generate_random_scene();
+            eye = vec3(13.0f, 2.0f, 3.0f);
+            at  = vec3( 0.0f, 0.0f, 0.0f);
+            up  = vec3( 0.0f, 1.0f, 0.0f);
+            fov = 20.0f;
+            break;
+        case 1:
+            world = generate_simple_scene();
+            eye = vec3( 0.0f, 4.0f, 6.0f);
+            at  = vec3( 0.0f, 0.0f, 0.0f);
+            up  = vec3( 0.0f, 1.0f, 0.0f);
+            fov = 90.0f;
+            break;
+        case 2:
+            world = generate_two_perlin_spheres();
+            eye = vec3(13.0f, 2.0f, 3.0f);
+            at  = vec3( 0.0f, 0.0f, 0.0f);
+            up  = vec3( 0.0f, 1.0f, 0.0f);
+            fov = 20.0;
+            break;
+        case 3:
+            world = generate_earth();
+            eye = vec3(13.0f, 2.0f, 3.0f);
+            at  = vec3( 0.0f, 0.0f, 0.0f);
+            up  = vec3( 0.0f, 1.0f, 0.0f);
+            fov = 20.0;
+            break;
+    }
 
     // Camera
 
-    vec3 eye = vec3(13.0f, 2.0f, 3.0f);
-    // vec3 eye = vec3( 0.0f, 4.0f, 6.0f);
-    vec3 at  = vec3( 0.0f, 0.0f, 0.0f);
-    vec3 up  = vec3( 0.0f, 1.0f, 0.0f);
     float aperture = 0.1f;
     float focal_length = 10.0f;
-
-    Scene::Camera camera(eye, at, up, 20.0f, aspect_ratio, aperture, focal_length, 1.0f);
+    Scene::Camera camera(eye, at, up, fov, aspect_ratio, aperture, focal_length, 1.0f);
 
     // Render
     clock_t last_timestamp = clock();

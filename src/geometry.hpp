@@ -418,7 +418,7 @@ private:
     AABB m_box;
 
 public:
-    Node() = delete;
+    Node() {};
 
     Node(const HittableList & list, float time0, float time1):
         Node(list.objects(), 0, list.objects().size(), time0, time1) {}

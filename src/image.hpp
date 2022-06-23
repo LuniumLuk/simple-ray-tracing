@@ -338,8 +338,154 @@ public:
         // else
         //     return m_even->value(u, v, p);
     }
+};
 
+class Perlin {
+private:
+    static const int s_point_count = 256;
+    vec3* m_vecs;
+    int* m_perm_x;
+    int* m_perm_y;
+    int* m_perm_z;
 
+    static int * perlin_generate_perm()
+    {
+        int* p = new int[s_point_count];
+
+        for (int i = 0; i < s_point_count; i++)
+            p[i] = i;
+
+        permute(p, s_point_count);
+
+        return p;
+    }
+
+    static void permute(int* p, int n)
+    {
+        for (int i = n - 1; i > 0; i--)
+        {
+            int target = random_int(0, i);
+            std::swap(p[i], p[target]);
+        }
+    }
+
+    static float trilinear_interp(vec3 c[2][2][2], float u, float v, float w)
+    {
+        float uu = u * u * (3.0f - 2.0f * u);
+        float vv = v * v * (3.0f - 2.0f * v);
+        float ww = w * w * (3.0f - 2.0f * w);
+        float accum = 0.0f;
+
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++)
+                for (int k = 0; k < 2; k++)
+                {
+                    vec3 weight_v(u - i, v - j, w - k);
+                    accum +=  (i * uu + (1.0f - i) * (1.0f - u))
+                            * (j * vv + (1.0f - j) * (1.0f - v))
+                            * (k * ww + (1.0f - k) * (1.0f - w))
+                            * glm::dot(c[i][j][k], weight_v);
+                }
+
+        return accum;
+    }
+public:
+    Perlin()
+    {
+        m_vecs = new vec3[s_point_count];
+        for (int i = 0; i < s_point_count; ++i)
+        {
+            m_vecs[i] = random_unit_vector();
+        }
+
+        m_perm_x = perlin_generate_perm();
+        m_perm_y = perlin_generate_perm();
+        m_perm_z = perlin_generate_perm();
+    }
+
+    ~Perlin()
+    {
+        delete[] m_vecs;
+        delete[] m_perm_x;
+        delete[] m_perm_y;
+        delete[] m_perm_z;
+    }
+
+    float noise(const vec3 & p) const
+    {
+        float u = p.x - floorf(p.x);
+        float v = p.y - floorf(p.y);
+        float w = p.z - floorf(p.z);
+
+        int i = static_cast<int>(floorf(p.x));
+        int j = static_cast<int>(floorf(p.y));
+        int k = static_cast<int>(floorf(p.z));
+        vec3 c[2][2][2];
+
+        for (int di = 0; di < 2; di++)
+            for (int dj = 0; dj < 2; dj++)
+                for (int dk = 0; dk < 2; dk++)
+                    c[di][dj][dk] = m_vecs[
+                        m_perm_x[(i + di) & 255] ^
+                        m_perm_y[(j + dj) & 255] ^
+                        m_perm_z[(k + dk) & 255]
+                    ];
+
+        return trilinear_interp(c, u, v, w);
+    }
+
+    float turb(const vec3 & p, int depth = 7) const
+    {
+        float accum  = 0.0f;
+        vec3  temp_p = p;
+        float weight = 1.0f;
+
+        for (int i = 0; i < depth; i++)
+        {
+            accum += weight * noise(temp_p);
+            weight *= 0.5f;
+            temp_p *= 2.0f;
+        }
+
+        return fabsf(accum);
+    }
+};
+
+class NoiseTexturePos : public Texture
+{
+private:
+    Perlin m_noise;
+    float m_scale;
+
+public:
+    NoiseTexturePos(): m_scale(1.0f) {}
+
+    NoiseTexturePos(float scale):
+        m_scale(scale) {}
+
+    virtual vec4 value(float u, float v, const vec3 & p) const override
+    {
+        // return COLOR_WHITE * 0.5f * (1.0f + m_noise.noise(m_scale * p));
+        // return COLOR_WHITE * m_noise.turb(m_scale * p);
+        return COLOR_WHITE * 0.5f * (1.0f + sinf(m_scale * p.z + 10.0f * m_noise.turb(m_scale * p)));
+    }
+};
+
+class ImageTexture : public Texture
+{
+private:
+    Image m_image;
+
+public:
+    ImageTexture() = delete;
+
+    ImageTexture(const char * filename):
+        m_image(Image(filename)) {}
+    
+    virtual vec4 value(float u, float v, const vec3 & p) const override
+    {
+        return m_image.sample(vec2(u, v));
+    }
 };
 
 } // namespace Utility

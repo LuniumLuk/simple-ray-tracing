@@ -46,7 +46,7 @@ public:
         }
 
         scattered = Geometry::Ray(rec.point, scatter_direction, r_in.time());
-        attenuation = m_albedo->value(rec.u, rec.v, rec.normal);
+        attenuation = m_albedo->value(rec.u, rec.v, rec.point);
         return true;
     }
 };
@@ -142,6 +142,5 @@ public:
 };
 
 }
-
 
 #endif

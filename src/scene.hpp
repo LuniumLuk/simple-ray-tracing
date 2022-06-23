@@ -34,8 +34,8 @@ Geometry::BVH::Node generate_random_scene() {
                     vec4 albedo = vec4(RANDOM_COLOR() * RANDOM_COLOR(), 1.0f);
                     sphere_material = make_shared<Material::Lambertian>(albedo);
                     vec3 center1 = center + vec3(0, random_float(0, 0.5f), 0);
-                    // world.add(make_shared<Geometry::Sphere>(center, 0.2f, sphere_material));
-                    world.add(make_shared<Geometry::MovingSphere>(center, center1, 0.0f, 1.0f, 0.2f, sphere_material));
+                    world.add(make_shared<Geometry::Sphere>(center, 0.2f, sphere_material));
+                    // world.add(make_shared<Geometry::MovingSphere>(center, center1, 0.0f, 1.0f, 0.2f, sphere_material));
                 }
                 else if (material_choice < 0.95)
                 {
@@ -70,12 +70,10 @@ Geometry::BVH::Node generate_random_scene() {
     world.add(make_shared<Geometry::Sphere>(vec3(-4.0f, 1.0f, 0.0f), 1.0f, material2));
     world.add(make_shared<Geometry::Sphere>(vec3( 4.0f, 1.0f, 0.0f), 1.0f, material3));
 
-    Geometry::BVH::Node world_node(world, 0.0f, 1.0f);
-
-    return world_node;
+    return Geometry::BVH::Node(world, 0.0f, 1.0f);
 }
 
-Geometry::HittableList generate_simple_scene() {
+Geometry::BVH::Node generate_simple_scene() {
     Geometry::HittableList world;
 
     auto ground_material = make_shared<Material::Lambertian>(vec4(0.5f, 0.5f, 0.5f, 1.0f));
@@ -106,7 +104,28 @@ Geometry::HittableList generate_simple_scene() {
         vec3( 4.0f, 0.0f, 4.0f),
         material4));
 
-    return world;
+    return Geometry::BVH::Node(world, 0.0f, 1.0f);
+}
+
+Geometry::BVH::Node generate_two_perlin_spheres()
+{
+    Geometry::HittableList world;
+
+    auto pertext = make_shared<Utility::NoiseTexturePos>(4.0f);
+    world.add(make_shared<Geometry::Sphere>(vec3(0.0f, -1000.0f, 0.0f), 1000.0f, make_shared<Material::Lambertian>(pertext)));
+    world.add(make_shared<Geometry::Sphere>(vec3(0.0f,     2.0f, 0.0f),    2.0f, make_shared<Material::Lambertian>(pertext)));
+
+    return Geometry::BVH::Node(world, 0.0f, 1.0f);
+}
+
+Geometry::BVH::Node generate_earth()
+{
+    Geometry::HittableList world;
+
+    auto earth_tex = make_shared<Utility::ImageTexture>("assets/texture/earthmap.jpg");
+    world.add(make_shared<Geometry::Sphere>(vec3(0.0f, 0.0f, 0.0f), 2.0f, make_shared<Material::Lambertian>(earth_tex)));
+
+    return Geometry::BVH::Node(world, 0.0f, 1.0f);
 }
 
 
