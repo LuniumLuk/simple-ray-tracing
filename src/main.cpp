@@ -138,7 +138,7 @@ int main()
             }
             duration = ((float)(clock() - last_timestamp) / CLOCKS_PER_SEC);
             get_duration_str(duration * j, estimate_time);
-            printf("\r[INFO] Rendering tile [%d %d], Scanlines remaining: % 4d, % 5.2f scanlines per second, Estimated time left: %s",
+            printf("\r[INFO] Rendering tile [%d %d], Scanlines remaining: % 4d, % 5.2f scanlines per second, Estimated time left: %s\t\t",
                 tj, ti, h_tiles[tj].second - j, 1.0 / duration, estimate_time);
             fflush(stdout);
             last_timestamp = clock();

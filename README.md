@@ -1,5 +1,7 @@
 # Ray Tracing
 
+![](./image/demo.gif)
+
 A simple ray tracing renderer with CPU based on Peter Shirley's Ray Tracing Tutorial with some modification including:
 
 - [x] omp parallel acceleration
