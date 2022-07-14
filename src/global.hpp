@@ -32,6 +32,43 @@ const float FLOAT_INFINITY = std::numeric_limits<float>::infinity();
 const float PI = 3.1415926535897932385f;
 const float EPSILON = 1e-6f;
 
+// Math
+
+vec3 rotate(const vec3 & vec, const vec4 & quaternion)
+{
+    vec3 u(quaternion.x, quaternion.y, quaternion.z);
+    float s = quaternion.w;
+    
+    return 2.0f * glm::dot(u, vec) * u
+         + (s * s - glm::dot(u, u)) * vec
+         + 2.0f * s * glm::cross(u, vec);
+}
+
+vec4 quaternion_from_axis_angle(const vec3 & axis, float angle)
+{
+    vec3 unit = glm::normalize(axis);
+    float cosa = cosf(angle * 0.5f);
+    float sina = sinf(angle * 0.5f);
+    vec4 quat(
+        sina * unit.x,
+        sina * unit.y,
+        sina * unit.z,
+        cosa
+    );
+    return quat;
+}
+
+vec4 quaternion_inverse(const vec4 & quat)
+{
+    float q = glm::dot(quat, quat);
+    float factor = 1.0f / q;
+    return vec4(
+        -quat.x * factor,
+        -quat.y * factor,
+        -quat.z * factor,
+         quat.w * factor
+    );
+}
 
 inline float degree_to_radian(float degree)
 {

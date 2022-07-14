@@ -521,6 +521,116 @@ Node::Node(
 
 } // namespace BVH
 
+class Translate : public Hittable
+{
+private:
+    shared_ptr<Hittable> m_instance;
+    vec3 m_offset;
+
+public:
+    Translate(shared_ptr<Hittable> instance, const vec3 & offset): 
+        m_instance(instance), m_offset(offset) {}
+
+    virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
+};
+
+bool Translate::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
+{
+    Ray translated(r.origin() - m_offset, r.direction(), r.time()); // subtract offset
+    if (!m_instance->hit(translated, t_min, t_max, rec))
+    {
+        return false;
+    }
+
+    rec.point += m_offset; // adding back offset
+    rec.set_face_normal(translated, rec.normal);
+
+    return true;
+}
+
+bool Translate::bounding_box(float time0, float time1, AABB & output_box) const
+{
+    if (!m_instance->bounding_box(time0, time1, output_box))
+        return false;
+
+    output_box = AABB(
+        output_box.min() + m_offset,
+        output_box.max() + m_offset );
+
+    return true;
+}
+
+class Rotate : public Hittable
+{
+private:
+    shared_ptr<Hittable> m_instance;
+    vec4 m_rotation;
+    AABB m_bbox;
+    bool m_has_bbox;
+    vec3 m_center;
+
+public:
+    Rotate(shared_ptr<Hittable> instance, const vec4 & rotation):
+        m_instance(instance), m_rotation(rotation)
+    {
+        vec3 min( FLOAT_INFINITY,  FLOAT_INFINITY,  FLOAT_INFINITY);
+        vec3 max(-FLOAT_INFINITY, -FLOAT_INFINITY, -FLOAT_INFINITY);
+
+        m_has_bbox = instance->bounding_box(0, 1, m_bbox);
+        if (!m_has_bbox)
+            return;
+        
+        m_center = (m_bbox.min() + m_bbox.max()) * 0.5f;
+
+        for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+        for (int k = 0; k < 2; k++) 
+        {
+            float x = i * m_bbox.max().x + (1 - i) * m_bbox.min().x;
+            float y = j * m_bbox.max().y + (1 - j) * m_bbox.min().y;
+            float z = k * m_bbox.max().z + (1 - k) * m_bbox.min().z;
+
+            vec3 rotated = m_center + rotate(vec3(x, y, z) - m_center, rotation);
+
+            for (int c = 0; c < 3; c++)
+            {
+                min[c] = fmin(min[c], rotated[c]);
+                max[c] = fmax(max[c], rotated[c]);
+            }
+        }
+
+        m_bbox = AABB(min, max);
+    }
+
+    virtual bool hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const override;
+    virtual bool bounding_box(float time0, float time1, AABB & output_box) const override;
+};
+
+bool Rotate::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) const
+{
+    vec3 rotated_origin = m_center + rotate(r.origin() - m_center, m_rotation);
+    vec3 rotated_direction = rotate(r.direction(), m_rotation);
+
+    Ray rotated(rotated_origin, rotated_direction, r.time());
+    if (!m_instance->hit(rotated, t_min, t_max, rec))
+    {
+        return false;
+    }
+
+    rec.point = m_center + rotate(rec.point - m_center, quaternion_inverse(m_rotation));
+    rec.set_face_normal(rotated, rotate(rec.normal, quaternion_inverse(m_rotation)));
+
+    return true;
+}
+
+bool Rotate::bounding_box(float time0, float time1, AABB & output_box) const
+{
+    output_box = m_bbox;
+
+    return m_has_bbox;
+}
+
 } // namespace Geometry
 
 #endif

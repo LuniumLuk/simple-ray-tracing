@@ -1,10 +1,19 @@
 # Ray Tracing
 
-A simple ray tracing renderer with CPU
+A simple ray tracing renderer with CPU based on Peter Shirley's Ray Tracing Tutorial with some modification including:
+
+- [x] omp parallel acceleration
+- [x] triangle object
+- [x] tiling render
+- [x] instance with quaternion rotation
+- [ ] rendering obj mesh
 
 ## Reference
 
-- Peter Shirley. Ray Tracing in One Weekend https://raytracing.github.io/books/RayTracingInOneWeekend.html
+- Peter Shirley. Ray Tracing in One Weekend 
+https://raytracing.github.io/books/RayTracingInOneWeekend.html
+- Peter Shirley. Ray Tracing the Next Week
+https://raytracing.github.io/books/RayTracingTheNextWeek.html
   
 ## Dependencies
 

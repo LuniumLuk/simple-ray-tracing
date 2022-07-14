@@ -3,6 +3,7 @@
 
 #include "global.hpp"
 #include "geometry.hpp"
+#include "rect.hpp"
 #include "material.hpp"
 
 using std::make_shared;
@@ -87,7 +88,7 @@ Geometry::BVH::Node generate_simple_scene() {
     world.add(make_shared<Geometry::Sphere>(vec3(-2.0f, 1.0f, 2.0f), 1.0f, material1));
     world.add(make_shared<Geometry::Sphere>(vec3( 2.0f, 1.0f, 2.0f), 1.0f, material1));
 
-    auto material4 = make_shared<Material::Emissive>(vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    auto material4 = make_shared<Material::DiffuseLight>(vec4(1.0f, 1.0f, 1.0f, 1.0f));
     world.add(make_shared<Geometry::Triangle>(
         vec3(-3.0f, 0.0f, -2.0f),
         vec3( 0.0f, 4.0f, -2.0f),
@@ -128,5 +129,59 @@ Geometry::BVH::Node generate_earth()
     return Geometry::BVH::Node(world, 0.0f, 1.0f);
 }
 
+Geometry::BVH::Node generate_cornell_box()
+{
+    Geometry::HittableList world;
+
+    auto red   = make_shared<Material::Lambertian>(vec4(.65, .05, .05, 1));
+    auto white = make_shared<Material::Lambertian>(vec4(.73, .73, .73, 1));
+    auto green = make_shared<Material::Lambertian>(vec4(.12, .45, .15, 1));
+    auto light = make_shared<Material::DiffuseLight>(vec4(15, 15, 15, 1));
+
+    using Geometry::AxisAlignedRectType;
+
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_YZ, green));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555,   0, AxisAlignedRectType::RECT_YZ, red  ));
+    world.add(make_shared<Geometry::AxisAlignedRect>(200, 355, 200, 355, 554, AxisAlignedRectType::RECT_XZ, light));
+    // world.add(make_shared<Geometry::AxisAlignedRect>(213, 343, 227, 332, 554, AxisAlignedRectType::RECT_XZ, light));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555,   0, AxisAlignedRectType::RECT_XZ, white));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_XZ, white));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_XY, white));
+
+    world.add(make_shared<Geometry::Box>(vec3(130, 0, 65),  vec3(295, 165, 230), white));
+    world.add(make_shared<Geometry::Box>(vec3(265, 0, 295), vec3(430, 330, 460), white));
+
+    return Geometry::BVH::Node(world, 0.0f, 1.0f);
+}
+
+Geometry::BVH::Node generate_cornell_box_transformed()
+{
+    Geometry::HittableList world;
+
+    auto red   = make_shared<Material::Lambertian>(vec4(.65, .05, .05, 1));
+    auto white = make_shared<Material::Lambertian>(vec4(.73, .73, .73, 1));
+    auto green = make_shared<Material::Lambertian>(vec4(.12, .45, .15, 1));
+    auto light = make_shared<Material::DiffuseLight>(vec4(1, 1, 1, 1));
+
+    using Geometry::AxisAlignedRectType;
+
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_YZ, green));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555,   0, AxisAlignedRectType::RECT_YZ, red  ));
+    world.add(make_shared<Geometry::AxisAlignedRect>( 50, 505,  50, 505, 554, AxisAlignedRectType::RECT_XZ, light));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555,   0, AxisAlignedRectType::RECT_XZ, white));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_XZ, white));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_XY, white));
+
+    auto left_box = make_shared<Geometry::Box>(vec3(265, 0, 295), vec3(430, 330, 460), white);
+    auto right_box = make_shared<Geometry::Box>(vec3(130, 0, 65),  vec3(295, 165, 230), white);
+
+    vec4 rotation_left = quaternion_from_axis_angle(vec3(1, 0, 1), degree_to_radian(30));
+    vec4 rotation_right = quaternion_from_axis_angle(vec3(1, 1, 0), degree_to_radian(45));
+
+    world.add(make_shared<Geometry::Rotate>(left_box, rotation_left));
+    world.add(make_shared<Geometry::Rotate>(right_box, rotation_right));
+
+    return Geometry::BVH::Node(world, 0.0f, 1.0f);
+}
 
 #endif

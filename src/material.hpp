@@ -120,13 +120,13 @@ public:
     }
 };
 
-class Emissive : public Material
+class DiffuseLight : public Material
 {
 private:
     vec4 m_color;
 
 public:
-    Emissive(const vec4 & color): 
+    DiffuseLight(const vec4 & color): 
         m_color(color) {}
 
     virtual bool scatter(
