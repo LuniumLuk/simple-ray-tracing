@@ -307,9 +307,11 @@ bool MovingSphere::hit(const Ray & r, float t_min, float t_max, HitRecord & rec)
 class Triangle : public Hittable
 {
 private:
-    vec3 m_v0, m_v1, m_v2;
-    vec3 m_normal;
+    vec3 m_v0,  m_v1,  m_v2;
     shared_ptr<Material::Material> m_material;
+    vec3 m_vn0, m_vn1, m_vn2;
+    vec3 m_normal;
+    AABB m_bbox;
 
 public:
     Triangle() = delete;
@@ -325,7 +327,35 @@ public:
         m_v2(v2),
         m_material(material)
     {
-        m_normal = glm::cross(v1 - v0, v2 - v0);
+        vec3 normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+        m_normal = normal;
+        m_vn0 = normal;
+        m_vn1 = normal;
+        m_vn2 = normal;
+
+        vec3 min = vec3(MIN(MIN(m_v0.x, m_v1.x), m_v2.x),
+                        MIN(MIN(m_v0.y, m_v1.y), m_v2.y),
+                        MIN(MIN(m_v0.z, m_v1.z), m_v2.z));
+        vec3 max = vec3(MAX(MAX(m_v0.x, m_v1.x), m_v2.x),
+                        MAX(MAX(m_v0.y, m_v1.y), m_v2.y),
+                        MAX(MAX(m_v0.z, m_v1.z), m_v2.z));
+
+        m_bbox = AABB(min, max);
+    }
+
+    Triangle(
+        const vec3 & v0,
+        const vec3 & v1,
+        const vec3 & v2,
+        const vec3 & vn0,
+        const vec3 & vn1,
+        const vec3 & vn2,
+        shared_ptr<Material::Material> material
+    ): Triangle(v0, v1, v2, material)
+    {
+        m_vn0 = vn0;
+        m_vn1 = vn1;
+        m_vn2 = vn2;
     }
     
     vec3 normal() const { return m_normal; }
@@ -339,7 +369,9 @@ bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) con
     vec3 v01 = m_v1 - m_v0;
     vec3 v12 = m_v2 - m_v1;
     vec3 v20 = m_v0 - m_v2;
-    float denom = glm::dot(m_normal, m_normal); 
+    vec3 v02 = m_v2 - m_v0;
+    vec3 normal = glm::cross(v01, v02);
+    float denom = glm::dot(normal, normal); 
 
     // 1. determine whether the ray is parellel to the triangle
     float N_dot_direction = glm::dot(m_normal, r.direction());
@@ -364,47 +396,45 @@ bool Triangle::hit(const Ray & r, float t_min, float t_max, HitRecord & rec) con
 
     vec3 v0P = P - m_v0;
     inside_out_test = glm::cross(v01, v0P);
-    if (glm::dot(m_normal, inside_out_test) < 0)
+    if (glm::dot(normal, inside_out_test) < 0)
     {
         return false;
     }
 
     vec3 v1P = P - m_v1;
     inside_out_test = glm::cross(v12, v1P);
-    if ((rec.u = glm::dot(m_normal, inside_out_test)) < 0)
+    if ((rec.u = glm::dot(normal, inside_out_test)) < 0)
     {
         return false;
     }
 
     vec3 v2P = P - m_v2;
     inside_out_test = glm::cross(v20, v2P);
-    if ((rec.v = glm::dot(m_normal, inside_out_test)) < 0)
+    if ((rec.v = glm::dot(normal, inside_out_test)) < 0)
     {
         return false;
     }
 
     rec.t = t;
     rec.point = P;
-    vec3 outward_normal = m_normal;
-    rec.set_face_normal(r, outward_normal);
-    rec.material = m_material;
     // Here we use barycentric coordinates as texture uv
     rec.u /= denom;
     rec.v /= denom;
+    // vec3 outward_normal = rec.u * m_vn1 + rec.v * m_vn2 + (1.0f - rec.u - rec.v) * m_vn0;
+    // vec3 outward_normal = m_vn0 + m_vn1 + m_vn2;
+    // outward_normal = glm::normalize(outward_normal);
+    vec3 outward_normal = m_normal;
+    rec.set_face_normal(r, outward_normal);
+    rec.material = m_material;
+
     
     return true;
 }
 
 bool Triangle::bounding_box(float time0, float time1, AABB & output_box) const
 {
-    vec3 min = vec3(MIN(MIN(m_v0.x, m_v1.x), m_v2.x),
-                    MIN(MIN(m_v0.y, m_v1.y), m_v2.y),
-                    MIN(MIN(m_v0.z, m_v1.z), m_v2.z));
-    vec3 max = vec3(MAX(MAX(m_v0.x, m_v1.x), m_v2.x),
-                    MAX(MAX(m_v0.y, m_v1.y), m_v2.y),
-                    MAX(MAX(m_v0.z, m_v1.z), m_v2.z));
+    output_box = m_bbox;
 
-    output_box = AABB(min, max);
     return true;
 }
 

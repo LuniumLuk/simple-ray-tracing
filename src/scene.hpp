@@ -5,6 +5,7 @@
 #include "geometry.hpp"
 #include "rect.hpp"
 #include "material.hpp"
+#include "mesh.hpp"
 
 using std::make_shared;
 using std::shared_ptr;
@@ -158,10 +159,13 @@ Geometry::BVH::Node generate_cornell_box_transformed()
 {
     Geometry::HittableList world;
 
-    auto red   = make_shared<Material::Lambertian>(vec4(.65, .05, .05, 1));
-    auto white = make_shared<Material::Lambertian>(vec4(.73, .73, .73, 1));
-    auto green = make_shared<Material::Lambertian>(vec4(.12, .45, .15, 1));
-    auto light = make_shared<Material::DiffuseLight>(vec4(1, 1, 1, 1));
+    auto red    = make_shared<Material::Lambertian>(vec4(.65, .05, .05, 1));
+    auto white  = make_shared<Material::Lambertian>(vec4(.73, .73, .73, 1));
+    auto green  = make_shared<Material::Lambertian>(vec4(.12, .45, .15, 1));
+    auto light  = make_shared<Material::DiffuseLight>(vec4(1, 1, 1, 1));
+    auto glass  = make_shared<Material::Dielectric>(1.4);
+    auto metal  = make_shared<Material::Metal>(vec4(.70, .60, .50, 1), .0);
+    auto orange = make_shared<Material::Metal>(vec4(.80, .40, .20, 1), .2);
 
     using Geometry::AxisAlignedRectType;
 
@@ -173,15 +177,60 @@ Geometry::BVH::Node generate_cornell_box_transformed()
     world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_XY, white));
 
     auto left_box = make_shared<Geometry::Box>(vec3(265, 0, 295), vec3(430, 330, 460), white);
-    auto right_box = make_shared<Geometry::Box>(vec3(130, 0, 65),  vec3(295, 165, 230), white);
+    auto right_box = make_shared<Geometry::Box>(vec3(130, 0, 65),  vec3(295, 165, 230), metal);
+    auto sphere = make_shared<Geometry::Sphere>(vec3(180, 280, 180), 80, glass);
 
     vec4 rotation_left = quaternion_from_axis_angle(vec3(1, 0, 1), degree_to_radian(30));
     vec4 rotation_right = quaternion_from_axis_angle(vec3(1, 1, 0), degree_to_radian(45));
 
     world.add(make_shared<Geometry::Rotate>(left_box, rotation_left));
     world.add(make_shared<Geometry::Rotate>(right_box, rotation_right));
+    world.add(sphere);
+
+    const vec3 cone_coords[4] = {
+        vec3(550,   0, 200),
+        vec3(350,   0, 200),
+        vec3(450,   0,   0),
+        vec3(450, 200,  50),
+    };
+
+    world.add(make_shared<Geometry::Triangle>(cone_coords[0], cone_coords[2], cone_coords[3], orange));
+    world.add(make_shared<Geometry::Triangle>(cone_coords[1], cone_coords[3], cone_coords[2], orange));
+    world.add(make_shared<Geometry::Triangle>(cone_coords[0], cone_coords[3], cone_coords[1], orange));
+    world.add(make_shared<Geometry::Triangle>(cone_coords[0], cone_coords[1], cone_coords[2], orange));
 
     return Geometry::BVH::Node(world, 0.0f, 1.0f);
 }
+
+Geometry::BVH::Node generate_cornell_box_mesh()
+{
+    Geometry::HittableList world;
+
+    auto red    = make_shared<Material::Lambertian>(vec4(.65, .05, .05, 1));
+    auto white  = make_shared<Material::Lambertian>(vec4(.73, .73, .73, 1));
+    auto green  = make_shared<Material::Lambertian>(vec4(.12, .45, .15, 1));
+    auto light  = make_shared<Material::DiffuseLight>(vec4(1, 1, 1, 1));
+    auto glass  = make_shared<Material::Dielectric>(1.4);
+    auto metal  = make_shared<Material::Metal>(vec4(.70, .60, .50, 1), .0);
+
+    using Geometry::AxisAlignedRectType;
+
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_YZ, green));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555,   0, AxisAlignedRectType::RECT_YZ, red  ));
+    world.add(make_shared<Geometry::AxisAlignedRect>( 50, 505,  50, 505, 554, AxisAlignedRectType::RECT_XZ, light));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555,   0, AxisAlignedRectType::RECT_XZ, white));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_XZ, white));
+    world.add(make_shared<Geometry::AxisAlignedRect>(  0, 555,   0, 555, 555, AxisAlignedRectType::RECT_XY, white));
+
+    auto mesh = std::make_shared<Geometry::BVH::Node>(
+        Utility::load_mesh("assets/mesh/spot.obj", metal, vec3(300, 300, 300), vec3(275, 200, 275)));
+
+    // vec4 rotation = quaternion_from_axis_angle(vec3(0, 1, 0), degree_to_radian(45));
+    // world.add(make_shared<Geometry::Rotate>(mesh, rotation));
+    world.add(mesh);
+
+    return Geometry::BVH::Node(world, 0.0f, 1.0f);
+}
+
 
 #endif

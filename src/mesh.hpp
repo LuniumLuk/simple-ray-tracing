@@ -8,6 +8,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "thirdparty/tinyobjloader/tiny_obj_loader.h"
 #include "global.hpp"
+#include "geometry.hpp"
 
 namespace Utility
 {
@@ -93,6 +94,44 @@ public:
     const std::vector<Vertex> & vertices() const { return m_vertices; }
     const std::vector<size_t> & indices() const { return m_indices; }
 };
+
+float vec3_length(const vec3 & vec)
+{
+    return glm::dot(vec, vec);
+}
+
+Geometry::BVH::Node load_mesh(const char * filename, shared_ptr<Material::Material> material, vec3 scale, vec3 translate)
+{
+    Mesh mesh(filename);
+
+    Geometry::HittableList triangles;
+
+    for (size_t fidx = 0; fidx < mesh.indices().size(); fidx += 3)
+    {
+        bool has_normal = fabs(vec3_length(mesh.vertices()[mesh.indices()[fidx]].normal)) > EPSILON;
+        if (has_normal)
+        {
+            triangles.add(make_shared<Geometry::Triangle>(
+                mesh.vertices()[mesh.indices()[fidx    ]].position * scale + translate,
+                mesh.vertices()[mesh.indices()[fidx + 1]].position * scale + translate,
+                mesh.vertices()[mesh.indices()[fidx + 2]].position * scale + translate,
+                mesh.vertices()[mesh.indices()[fidx    ]].normal,
+                mesh.vertices()[mesh.indices()[fidx + 1]].normal,
+                mesh.vertices()[mesh.indices()[fidx + 2]].normal,
+                material));
+        }
+        else
+        {
+            triangles.add(make_shared<Geometry::Triangle>(
+                mesh.vertices()[mesh.indices()[fidx    ]].position * scale + translate,
+                mesh.vertices()[mesh.indices()[fidx + 1]].position * scale + translate,
+                mesh.vertices()[mesh.indices()[fidx + 2]].position * scale + translate,
+                material));
+        }
+    }
+
+    return Geometry::BVH::Node(triangles, 0.0f, 1.0f);
+}
 
 }
 

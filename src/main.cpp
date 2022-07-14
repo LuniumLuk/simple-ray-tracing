@@ -6,7 +6,6 @@
 #include <utility>
 #include "global.hpp"
 #include "image.hpp"
-// #include "mesh.hpp"
 #include "geometry.hpp"
 #include "camera.hpp"
 #include "material.hpp"
@@ -23,22 +22,30 @@ vec4 ray_color(const Geometry::Ray & r, const Geometry::Hittable & world, int de
 
 int main()
 {
-    // Image
+    // --- Configuration ---
+    // modify as needed
 
-    float aspect_ratio = 3.0f / 2.0f;
-    int scr_h = 512;
-    int samples_per_pixel = 250;
-    int max_depth = 50;
-    bool bilinear_filter = false;
-    int tile = 8;
+    float aspect_ratio = 3.0f / 2.0f;   // aspect ratio (h / w)
+    int scr_h = 512;                    // image height
+    int samples_per_pixel = 500;        // samples per pixel
+    int max_depth = 50;                 // max ray tracing depth
+    bool bilinear_filter = false;       // perform bilinear filter to result
+    int tile = 8;                       // tiles num
+    int scene_idx = 5;                  // which scene to render
+    // 0 - random spheres as in 'Ray Tracing in One Weekend'
+    // 1 - simpler scene with 3 spheres and 3 emissive triangles as in Ray Tracing in One Weekend
+    // 2 - two perlin spheres
+    // 3 - earth with texture
+    // 4 - cornell box as in 'Ray Tracing the Next Week' (will change aspect_ratio to 1)
+    // 5 - cornell box with rotated boxes (will change aspect_ratio to 1)
+    // 6 - cornell box with mesh inside (will change aspect_ratio to 1)
 
     // World
-
     Geometry::BVH::Node world;
     vec3 eye, at, up;
     float fov;
 
-    switch (5)
+    switch (scene_idx)
     {
         case 0:
             world = generate_random_scene();
@@ -70,7 +77,7 @@ int main()
             break;
         case 4:
             world = generate_cornell_box();
-            eye = vec3(278.0f, 278.0f, -800.0f);
+            eye = vec3(278.0f, 278.0f, -750.0f);
             at  = vec3(278.0f, 278.0f,    0.0f);
             up  = vec3(  0.0f,  1.0f,     0.0f);
             fov = 40.0;
@@ -84,13 +91,20 @@ int main()
             fov = 40.0;
             aspect_ratio = 1.0f;
             break;
+        case 6:
+            world = generate_cornell_box_mesh();
+            eye = vec3(278.0f, 278.0f, -750.0f);
+            at  = vec3(278.0f, 278.0f,    0.0f);
+            up  = vec3(  0.0f,  1.0f,     0.0f);
+            fov = 40.0;
+            aspect_ratio = 1.0f;
+            break;
     }
 
     int scr_w = static_cast<int>(scr_h * aspect_ratio);
     Utility::Image image(scr_w, scr_h, 3);
 
     // Camera
-
     float aperture = 0.1f;
     float focal_length = 10.0f;
     Scene::Camera camera(eye, at, up, fov, aspect_ratio, aperture, focal_length, 1.0f);
@@ -103,6 +117,7 @@ int main()
     int w_per_tile = (image.width() + tile - 1) / tile;
     int h_per_tile = (image.height() + tile - 1) / tile;
 
+    // Tiling
     std::vector<std::pair<int, int> > w_tiles;
     std::vector<std::pair<int, int> > h_tiles;
     for (int i = 0; i < tile; i++)
@@ -111,7 +126,7 @@ int main()
         h_tiles.push_back(std::make_pair<int, int>(i * h_per_tile, MIN((i + 1) * h_per_tile, image.height())));
     }
 
-
+    // Rendering
 #ifdef _OPENMP
     printf("[INFO] Omp max threads: %d\n", omp_get_max_threads());
 #endif
@@ -138,7 +153,7 @@ int main()
             }
             duration = ((float)(clock() - last_timestamp) / CLOCKS_PER_SEC);
             get_duration_str(duration * j, estimate_time);
-            printf("\r[INFO] Rendering tile [%d %d], Scanlines remaining: % 4d, % 5.2f scanlines per second, Estimated time left: %s\t\t",
+            printf("\r[INFO] Rendering tile [%d %d], Scanlines remaining: % 4d, % 5.2f scanlines per second, Estimated time left: %s    ",
                 tj, ti, h_tiles[tj].second - j, 1.0 / duration, estimate_time);
             fflush(stdout);
             last_timestamp = clock();
@@ -153,6 +168,7 @@ int main()
     get_duration_str(duration, total_time);
     printf("[INFO] Done! Total time: %s\n", total_time);
 
+    // Filtering Image
     if (bilinear_filter)
     {
         auto res = Utility::bilateral_filtering(image, 9, 0.1f, 10.0f);

@@ -1,14 +1,24 @@
-# Ray Tracing
+# Simple Ray Tracing
 
-![](./image/demo.gif)
+![](./image/cornell.gif)
 
-A simple ray tracing renderer with CPU based on Peter Shirley's Ray Tracing Tutorial with some modification including:
+> Cornell Box, size: 512 * 512, SPP: 250, max depth: 50, playback rate: 30X
+
+![](./image/mesh.gif)
+
+> Mesh in Cornell Box, size: 256 * 256, SPP: 150, max depth: 50, playback rate: 10X
+
+Unfiltered Result    |  Bilateral Filtered Result
+:-------------------------:|:-------------------------:
+<img src="./image/origin.jpg" width="360px" />  |  <img src="./image/filtered.jpg" width="360px" />
+
+A simple ray tracing renderer with CPU based on **Peter Shirley's Ray Tracing Tutorial** with some modification including:
 
 - [x] omp parallel acceleration
 - [x] triangle object
 - [x] tiling render
 - [x] instance with quaternion rotation
-- [ ] rendering obj mesh
+- [x] rendering obj mesh
 
 ## Reference
 
@@ -25,7 +35,7 @@ https://raytracing.github.io/books/RayTracingTheNextWeek.html
 
 ## Compile
 
-Clone the project
+Clone the project with all **thirdparty submodules**
 
 ```shell
 git clone --recursive https://github.com/LuniumLuk/raytracing.git
@@ -35,6 +45,8 @@ Compile with Makefile
 
 ```shell
 make
+
+make run
 ```
 
 or Compile with C++ compiler, since this project has only one .cpp file
